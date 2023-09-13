@@ -5,7 +5,12 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import InputFile, FSInputFile
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+
+MY_ENV_VAR = os.getenv('MY_ENV_VAR')
 from keyboards import keyboard_start
 from parser import get_data_category, get_catalogs_wb, search_category_in_catalog, scrap_page, get_data_from_json, \
     save_excel
@@ -86,6 +91,12 @@ async def parse(message: types.Message):
     #     await message.reply(str(e))
     # except PermissionError:
     #     await message.reply('Ошибка! Вы забыли закрыть созданный ранее excel файл. Закройте и повторите попытку')
+
+
+@dp.callback_query(lambda c: c.data == 'start_parsing')
+async def process_start_parsing(callback_query: types.CallbackQuery):
+    await callback_query.answer("Начинаем парсинг!")
+    # Добавьте ваш код для начала парсинга здесь
 
 
 async def main():
