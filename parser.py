@@ -4,7 +4,10 @@ import json
 import os
 import pandas as pd
 import requests
+from aiogram.types import FSInputFile
 from retry import retry
+
+from config import bot
 
 
 def save_excel(data: list, filename: str):
@@ -83,10 +86,43 @@ def scrap_page(page: int, shard: str, query: str, low_price: int, top_price: int
           f'&dest=-1257786' \
           f'&locale=ru' \
           f'&page={page}' \
-          f'&priceU={low_price * 100};{top_price * 100}' \
+          f'&priceU={int(low_price) * 100};{int((top_price)) * 100}' \
           f'&sort=popular&spp=0' \
           f'&{query}' \
           f'&discount={discount}'
+
     r = requests.get(url, headers=headers)
     print(f'Статус: {r.status_code} Страница {page} Идет сбор...')
     return r.json()
+
+
+def parse(user_data, user_id):
+    try:
+        url = user_data['waiting_for_url']
+        low_price = user_data['waiting_for_min_price']
+        top_price = user_data['waiting_for_max_price']
+        discount = user_data['waiting_for_discount']
+        catalog_data = get_data_category(get_catalogs_wb())
+        category = search_category_in_catalog(url=url, catalog_list=catalog_data)
+        data_list = []
+
+        for page in range(1, 51):
+            data = scrap_page(
+                page=page,
+                shard=category['shard'],
+                query=category['query'],
+                low_price=low_price,
+                top_price=top_price,
+                discount=discount)
+            if len(get_data_from_json(data)) > 0:
+                data_list.extend(get_data_from_json(data))
+            else:
+                break
+        filename = f'{category["name"]}_from_{low_price}_to_{top_price}'
+        save_excel(data_list, filename)
+
+        bot.send_document(user_id, FSInputFile(f'{filename}.xlsx'))
+
+    except TypeError as e:
+        print(e)
+    return filename
