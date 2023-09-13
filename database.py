@@ -1,19 +1,17 @@
+import os
+
 import mysql.connector
+from dotenv import load_dotenv
 from mysql.connector import Error
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 
 from sqlalchemy.orm import sessionmaker,declarative_base
 from sqlalchemy import create_engine
 from datetime import datetime
-
+load_dotenv()
 # Создаем соединение с базой данных MySQL
+engine = create_engine(f"mysql+mysqlconnector://{os.getenv('DATABASE_USER')}:{os.getenv('DATABASE_PASSWORD')}@{os.getenv('DATABASE_HOST')}/{os.getenv('DATABASE_NAME')}")
 
-
-    if connection.is_connected():
-        print('Connected to MySQL database')
-
-except Error as e:
-    print(f"Error: {e}")
 
 # Создаем сессию для работы с базой данных
 
@@ -38,20 +36,3 @@ class User(Base):
 
 # Создаем таблицу в базе данных
 Base.metadata.create_all(engine)
-
-# Пример добавления нового пользователя
-new_user = User(telegram_id=123456, is_vip=False, free_requests=10)
-session.add(new_user)
-session.commit()
-
-# Пример извлечения данных о пользователе
-user = session.query(User).filter_by(telegram_id=123456).first()
-if user:
-    print(f"User {user.telegram_id}: VIP - {user.is_vip}, Free Requests - {user.free_requests}")
-else:
-    print("User not found.")
-
-# Закрываем соединение с MySQL
-if connection.is_connected():
-    connection.close()
-    print('Connection closed')
