@@ -4,7 +4,7 @@ import pandas as pd
 from aiogram.filters import Command
 from aiogram.types import FSInputFile, Message
 from config import dp, bot
-from database import Base, User, session
+from database import Base, User, session, execute_sql_query
 from keyboards import *
 from FSM_activity import *
 from callbacks import *
@@ -43,9 +43,19 @@ async def start(message: types.Message):
         Пользователь отправляет команду /start, и эта функция создает нового пользователя и отправляет приветственное сообщение.
     """
     try:
-        new_user = User(telegram_id=int(message.from_user.id), is_vip=False, free_requests=10)
-        session.add(new_user)
-        session.commit()
+        insert_user_query = "INSERT INTO your_app_name_telegramuser (telegram_id, is_vip, vip_end_date, free_requests) VALUES (%s, %s, %s, %s);"
+
+        # Параметры для SQL-запроса
+        user_params = (123456789, False, None, 0)
+
+        # Выполнение SQL-запроса с параметрами
+        result = execute_sql_query(insert_user_query, user_params)
+
+        # Проверка результата
+        if result is not None:
+            print("Пользователь успешно добавлен.")
+        else:
+            print("Произошла ошибка при добавлении пользователя.")
     except Exception as e:
         pass
     await _send_inline_keyboard(message, "Добро пожаловать! Для начала парсинга нажмите кнопку ниже.", keyboard_main())
