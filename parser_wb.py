@@ -11,6 +11,16 @@ from config import bot
 
 
 def save_excel(data: list, filename: str):
+    """
+    Сохраняет данные в формате Excel.
+
+    Args:
+        data (list): Список данных для сохранения.
+        filename (str): Название файла Excel.
+
+    Returns:
+        None
+    """
     df = pd.DataFrame(data)
     writer = pd.ExcelWriter(f'{filename}.xlsx')
     df.to_excel(writer, 'data')
@@ -19,12 +29,27 @@ def save_excel(data: list, filename: str):
 
 
 def get_catalogs_wb() -> dict:
+    """
+    Получает каталоги товаров с сайта Wildberries в формате JSON.
+
+    Returns:
+        dict: Словарь с данными о каталогах.
+    """
     url = 'https://www.wildberries.ru/webapi/menu/main-menu-ru-ru.json'
     headers = {'Accept': '*/*', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     return requests.get(url, headers=headers).json()
 
 
 def get_data_category(catalogs_wb: dict) -> list:
+    """
+    Рекурсивно собирает данные о категориях товаров из каталога.
+
+    Args:
+        catalogs_wb (dict): Словарь с данными о каталогах.
+
+    Returns:
+        list: Список данных о категориях.
+    """
     catalog_data = []
     if isinstance(catalogs_wb, dict) and 'childs' not in catalogs_wb:
         catalog_data.append({
@@ -42,6 +67,16 @@ def get_data_category(catalogs_wb: dict) -> list:
 
 
 def search_category_in_catalog(url: str, catalog_list: list) -> dict:
+    """
+    Ищет категорию товаров по URL в списке каталогов.
+
+    Args:
+        url (str): URL категории товаров.
+        catalog_list (list): Список каталогов.
+
+    Returns:
+        dict: Найденная категория товаров.
+    """
     for catalog in catalog_list:
         if catalog['url'] == url.split('https://www.wildberries.ru')[-1]:
             print(f'найдено совпадение: {catalog["name"]}')
@@ -49,6 +84,15 @@ def search_category_in_catalog(url: str, catalog_list: list) -> dict:
 
 
 def get_data_from_json(json_file: dict) -> list:
+    """
+    Извлекает данные о товарах из JSON-файла.
+
+    Args:
+        json_file (dict): JSON-данные о товарах.
+
+    Returns:
+        list: Список данных о товарах.
+    """
     data_list = []
     for data in json_file['data']['products']:
         data_list.append({
@@ -67,6 +111,20 @@ def get_data_from_json(json_file: dict) -> list:
 
 @retry(Exception, tries=-1, delay=0)
 def scrap_page(page: int, shard: str, query: str, low_price: int, top_price: int, discount: int = None) -> dict:
+    """
+    Сканирует страницу сайта Wildberries с товарами.
+
+    Args:
+        page (int): Номер страницы.
+        shard (str): Идентификатор категории.
+        query (str): Поисковый запрос.
+        low_price (int): Минимальная цена товаров.
+        top_price (int): Максимальная цена товаров.
+        discount (int): Скидка на товары (по умолчанию None).
+
+    Returns:
+        dict: JSON-данные со страницы товаров.
+    """
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0",
         "Accept": "*/*",
@@ -86,7 +144,7 @@ def scrap_page(page: int, shard: str, query: str, low_price: int, top_price: int
           f'&dest=-1257786' \
           f'&locale=ru' \
           f'&page={page}' \
-          f'&priceU={int(low_price) * 100};{int((top_price)) * 100}' \
+          f'&priceU={int(low_price) * 100};{int(top_price) * 100}' \
           f'&sort=popular&spp=0' \
           f'&{query}' \
           f'&discount={discount}'
@@ -96,7 +154,16 @@ def scrap_page(page: int, shard: str, query: str, low_price: int, top_price: int
     return r.json()
 
 
-def parse(user_data, user_id):
+def parse(user_data):
+    """
+    Основная функция для парсинга данных с сайта Wildberries.
+
+    Args:
+        user_data (dict): Входные данные от пользователя, содержащие URL, цены и другие параметры.
+
+    Returns:
+        str: Название созданного Excel-файла с результатами.
+    """
     try:
         url = user_data['waiting_for_url']
         low_price = user_data['waiting_for_min_price']
@@ -120,8 +187,6 @@ def parse(user_data, user_id):
                 break
         filename = f'{category["name"]}_from_{low_price}_to_{top_price}'
         save_excel(data_list, filename)
-
-        bot.send_document(user_id, FSInputFile(f'{filename}.xlsx'))
 
     except TypeError as e:
         print(e)
